@@ -27,7 +27,7 @@ namespace SchedulingPractice.Core
 
             if (string.IsNullOrEmpty(connstr))
             {
-                this._conn = new SqlConnection(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=JobsDB;Integrated Security=True;Pooling=False");
+                this._conn = new SqlConnection(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=JobsDB;Integrated Security=True;");
             }
             else
             {
@@ -93,7 +93,7 @@ select @id;
         {
             return this._conn.Execute(
                 @"
-update [jobs] set state = 1 where id = @id and state = 0;
+update [jobs] set state = 1, lockat = getdate() where id = @id and state = 0 and lockat is NULL;
 insert [workerlogs] (jobid, action, clientid) values (@id, case @@rowcount when 1 then 'ACQUIRE_SUCCESS' else 'ACQUIRE_FAILURE' end, @clientid);
 ",
                 new
@@ -155,6 +155,17 @@ insert [workerlogs] (jobid, action, clientid) values (@id, case @@rowcount when 
             return this._conn.ExecuteScalar<double>(@"select stdev(datediff(millisecond, RunAt, ExecuteAt)) as stdev_delay from jobs where state = 2;");
         }
 
+        private int JobLockBeforeRunAtCount()
+        {
+            return this._conn.ExecuteScalar<int>($"select count(*) from Jobs where RunAt > LockAt;");
+        }
+
+        private int JobExecBeforeRunAtCount()
+        {
+            return this._conn.ExecuteScalar<int>($"select count(*) from Jobs where RunAt > ExecuteAt;");
+        }
+
+
         public (
             int count_action_create,
             int count_action_acquire_success,
@@ -166,6 +177,8 @@ insert [workerlogs] (jobid, action, clientid) values (@id, case @@rowcount when 
             int count_state_create,
             int count_state_lock,
             int count_state_complete,
+            int count_state_early_lock,
+            int count_state_early_exec,
 
             int stat_delay_exceed_count,
             double stat_average_delay,
@@ -183,6 +196,8 @@ insert [workerlogs] (jobid, action, clientid) values (@id, case @@rowcount when 
                 this.CountJobState(JobStateEnum.CREATE),
                 this.CountJobState(JobStateEnum.LOCK),
                 this.CountJobState(JobStateEnum.COMPLETE),
+                this.JobLockBeforeRunAtCount(),
+                this.JobExecBeforeRunAtCount(),
 
                 this.JobExecuteDelayExceedCount(),
                 this.JobExecuteDelayAverage(),

@@ -1,14 +1,8 @@
-﻿using SchedulingPractice.Core;
-using System.Linq;
-using System;
-using System.Threading.Tasks;
+﻿using System;
 using Microsoft.Extensions.Hosting;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
 
-namespace SubWorker.AndrewDemo
+namespace SubWorker.JulianDemo
 {
     class Program
     {
@@ -17,10 +11,11 @@ namespace SubWorker.AndrewDemo
             var host = new HostBuilder()
                 .ConfigureServices((context, services) =>
                 {
-                    //services.AddHostedService<AndrewSubWorkerBackgroundService>();
-                    services.AddHostedService<AndrewSubWorkerBackgroundService2>();
+                    services.AddHostedService<JulianSubWorkerBackgroundService>();
+                    //services.AddHostedService<AndrewSubWorker2BackgroundService>();
                 })
                 .Build();
+
             using (host)
             {
                 host.Start();
@@ -28,6 +23,4 @@ namespace SubWorker.AndrewDemo
             }
         }
     }
-
-
 }
